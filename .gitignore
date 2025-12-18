@@ -1,0 +1,14 @@
+
+# File folders
+input/images/*
+input/labels/*
+target/*
+
+# Python
+__pycache__/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
