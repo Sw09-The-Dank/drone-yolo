@@ -1,8 +1,11 @@
 
 # File folders
 input/images/*
+!input/images/.gitkeep
 input/labels/*
+!input/labels/.gitkeep
 target/*
+!target/.gitkeep
 
 # Python
 __pycache__/
