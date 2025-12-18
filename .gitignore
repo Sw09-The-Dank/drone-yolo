@@ -5,12 +5,14 @@ input/images/*
 input/labels/*
 !input/labels/.gitkeep
 
-data/test/*
-!data/test/.gitkeep
-data/val/*
-!data/val/.gitkeep
-data/train/*
-!data/train/.gitkeep
+data/train/images/*
+!data/train/images/.gitkeep
+data/train/labels/*
+!data/train/labels/.gitkeep
+data/val/images/*
+!data/val/images/.gitkeep
+data/val/labels/*
+!data/val/labels/.gitkeep
 
 output/*
 !output/.gitkeep

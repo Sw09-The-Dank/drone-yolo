@@ -22,7 +22,7 @@ def main():
         model = YOLO("yolo11s.pt")
 
     results = model.train(  # pylint: disable=unused-variable
-        data=r"sw9_drone\datasets\drones\data.yaml",
+        data=r"train_data.yml",
         epochs=200,  # additional epochs
         imgsz=640,
         batch=16,
