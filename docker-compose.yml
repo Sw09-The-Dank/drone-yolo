@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  yolo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yolo
+    image: yolo:latest
+    
+    # GPU support (requires nvidia-docker2)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # Mount volumes for data persistence
+    volumes:
+      - ./data:/app/data
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./runs:/app/runs
+      # Mount source code for development (optional - comment out for production)
+      - ./train.py:/app/train.py
+      - ./inference.py:/app/inference.py
+      - ./create_data.py:/app/create_data.py
+      - ./clear_data.py:/app/clear_data.py
+    
+    # Environment variables
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+    
+    # Keep container running (useful for interactive use)
+    stdin_open: true
+    tty: true
+    
+    # Override default command if needed
+    # command: python train.py
+    
+    # Restart policy
+    restart: unless-stopped
+

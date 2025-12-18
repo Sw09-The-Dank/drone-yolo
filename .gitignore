@@ -17,9 +17,6 @@ data/val/labels/*
 output/*
 !output/.gitkeep
 
-inference_data/*
-!inference_data/.gitkeep
-
 # Python
 __pycache__/
 
