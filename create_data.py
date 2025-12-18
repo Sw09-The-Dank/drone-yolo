@@ -6,6 +6,7 @@ import random
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from xml.dom import minidom
+from clear_data import clear_data_folders
 
 # Configuration variables
 TRAIN_SPLIT = 0.7
@@ -220,9 +221,49 @@ def split_data(json_files):
     return train_files, val_files, test_files
 
 
+def is_directory_empty_except_gitkeep(dir_path):
+    """
+    Check if a directory is empty except for .gitkeep files.
+    
+    Args:
+        dir_path: Path to the directory to check
+    
+    Returns:
+        True if directory is empty (or only contains .gitkeep), False otherwise
+    """
+    if not dir_path.exists():
+        return True
+    
+    for item in dir_path.iterdir():
+        if item.name != ".gitkeep":
+            return False
+    
+    return True
+
+
+def check_test_data_populated():
+    """
+    Check if test data directories (labels, xml, images) are populated.
+    
+    Returns:
+        True if any test directory contains files (other than .gitkeep), False otherwise
+    """
+    test_labels = TEST_DIR / "labels"
+    test_xml = TEST_DIR / "xml"
+    test_images = TEST_DIR / "images"
+    
+    return (not is_directory_empty_except_gitkeep(test_labels) or
+            not is_directory_empty_except_gitkeep(test_xml) or
+            not is_directory_empty_except_gitkeep(test_images))
+
+
 def main():
     """Main function to process all input files and create training data."""
     print("Starting YOLO data preparation...")
+    
+    if check_test_data_populated():
+        print("\nData folder already populated, clearing existing data...")
+        return
     
     # Validate splits
     try:

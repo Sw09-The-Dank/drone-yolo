@@ -33,6 +33,5 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
 # Copy project files
 COPY . /app/
 
-# Default command - starts main.py which keeps container running
-CMD ["python", "main.py"]
+CMD ["python", "-u", "main.py"]
 
