@@ -15,6 +15,9 @@ data/train/*
 output/*
 !output/.gitkeep
 
+inference_data/*
+!inference_data/.gitkeep
+
 # Python
 __pycache__/
 
