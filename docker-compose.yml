@@ -1,0 +1,39 @@
+services:
+  yolo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: yolo:latest
+
+    # GPU support - uncomment if you have NVIDIA GPU with proper WSL2 setup
+    # For WSL2: Install NVIDIA drivers and nvidia-container-toolkit
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    
+    # Alternative GPU support (works better with Docker Desktop on Windows)
+    # Uncomment the line below if you want to try GPU support:
+    # runtime: nvidia
+
+    volumes:
+      - ./data:/app/data
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./runs:/app/runs
+
+      - ./main.py:/app/main.py
+      - ./train.py:/app/train.py
+      - ./inference.py:/app/inference.py
+      - ./create_data.py:/app/create_data.py
+      - ./clear_data.py:/app/clear_data.py
+
+    environment:
+      # CUDA_VISIBLE_DEVICES=0  # Uncomment if using GPU
+      - PYTHONUNBUFFERED=1
+
+    stdin_open: true
+    tty: true
