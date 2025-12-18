@@ -4,8 +4,16 @@ input/images/*
 !input/images/.gitkeep
 input/labels/*
 !input/labels/.gitkeep
-target/*
-!target/.gitkeep
+
+data/test/*
+!data/test/.gitkeep
+data/val/*
+!data/val/.gitkeep
+data/train/*
+!data/train/.gitkeep
+
+output/*
+!output/.gitkeep
 
 # Python
 __pycache__/
