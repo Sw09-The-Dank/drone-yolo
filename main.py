@@ -7,7 +7,7 @@ def main():
     print("Commands:")
     print("  docker-compose exec yolo python create_data.py")
     print("  docker-compose exec yolo python train.py")
-    print("  docker-compose exec yolo python inference.py")
+    print("  docker-compose exec yolo python inference.py --filename--")
     print("  docker-compose exec yolo python clear_data.py")
     
     # Keep container running indefinitely

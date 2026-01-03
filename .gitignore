@@ -26,9 +26,6 @@ data/test/labels/*
 data/test/xml/*
 !data/test/xml/.gitkeep
 
-output/*
-!output/.gitkeep
-
 # Python
 __pycache__/
 
