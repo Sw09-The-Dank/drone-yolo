@@ -1,0 +1,8 @@
+# External dataset config for YOLO training (drone models only)
+path: /Documents/drone-mask-dino/dataset/swapaug7
+train: train/images
+val: val/images
+
+nc: 1
+names:
+  0: drone
