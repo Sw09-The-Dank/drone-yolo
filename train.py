@@ -15,6 +15,7 @@ WORKERS = 2
 PLOTS = True
 RESUME = False
 REPO_ROOT = Path(__file__).resolve().parent
+IMAGE_EXTENSIONS = ("*.jpg", "*.jpeg", "*.png", "*.bmp", "*.webp")
 
 
 def check_cuda_available():
@@ -39,13 +40,68 @@ def check_cuda_available():
         return False, "CPU"
 
 
+def has_image_files(directory: Path) -> bool:
+    """Return True if the directory contains at least one supported image file."""
+    if not directory.exists():
+        return False
+
+    for pattern in IMAGE_EXTENSIONS:
+        if any(directory.glob(pattern)):
+            return True
+    return False
+
+
+def resolve_split_images_dir(dataset_root: Path, split: str) -> Path:
+    """Resolve split image directory supporting both split/images and split layouts."""
+    split_dir = dataset_root / split
+    nested_images_dir = split_dir / "images"
+
+    if has_image_files(nested_images_dir):
+        return nested_images_dir
+    if has_image_files(split_dir):
+        return split_dir
+
+    raise FileNotFoundError(
+        f"Could not find images for split '{split}'. Checked:\n"
+        f"- {nested_images_dir}\n"
+        f"- {split_dir}"
+    )
+
+
+def build_runtime_data_config(dataset_root: Path) -> Path:
+    """Build a YOLO data config using detected train/val image directory layout."""
+    train_images_dir = resolve_split_images_dir(dataset_root, "train")
+    val_images_dir = resolve_split_images_dir(dataset_root, "val")
+
+    train_rel = train_images_dir.relative_to(dataset_root).as_posix()
+    val_rel = val_images_dir.relative_to(dataset_root).as_posix()
+
+    runtime_data_path = REPO_ROOT / "data" / "train_data_external_resolved.yml"
+    runtime_yaml = [
+        f"path: {dataset_root.as_posix()}",
+        f"train: {train_rel}",
+        f"val: {val_rel}",
+        "",
+        "nc: 1",
+        "names:",
+        "  0: drone",
+    ]
+    runtime_data_path.write_text("\n".join(runtime_yaml) + "\n", encoding="utf-8")
+    return runtime_data_path
+
+
 def convert_coco_annotations(dataset_root: Path) -> None:
     """Convert COCO JSON annotations to YOLO format if not already done."""
     train_labels = dataset_root / "train" / "labels"
     val_labels = dataset_root / "val" / "labels"
+    resolve_split_images_dir(dataset_root, "train")
+    resolve_split_images_dir(dataset_root, "val")
+
+    train_has_labels = train_labels.exists() and any(train_labels.glob("*.txt"))
+    val_has_labels = val_labels.exists() and any(val_labels.glob("*.txt"))
 
     # Skip if labels already exist
-    if train_labels.exists() and val_labels.exists():
+    if train_has_labels and val_has_labels:
         print("YOLO labels already exist, skipping conversion")
         return
 
@@ -95,6 +151,9 @@ def main():
 
     print(f"Dataset root: {dataset_root}")
 
+    runtime_data_path = build_runtime_data_config(dataset_root)
+    print(f"Resolved data config: {runtime_data_path}")
+
     # Convert COCO annotations to YOLO format
     convert_coco_annotations(dataset_root)
 
@@ -126,7 +185,7 @@ def main():
         model = YOLO("yolo11s.pt")
 
     results = model.train(
-        data=str(data_path),
+        data=str(runtime_data_path),
         epochs=EPOCHS,
         imgsz=IMG_SIZE,
         batch=BATCH_SIZE,

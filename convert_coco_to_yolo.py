@@ -1,33 +1,60 @@
 """Convert COCO JSON annotations to YOLO format."""
 
 import json
-import os
 from pathlib import Path
 from typing import Dict, List
 
 
+IMAGE_EXTENSIONS = ("*.jpg", "*.jpeg", "*.png", "*.bmp", "*.webp")
+
+
+def has_image_files(directory: Path) -> bool:
+    """Return True if directory contains at least one supported image file."""
+    if not directory.exists():
+        return False
+    for pattern in IMAGE_EXTENSIONS:
+        if any(directory.glob(pattern)):
+            return True
+    return False
+
+
+def resolve_images_dir(dataset_root: Path, split: str) -> Path:
+    """Resolve images directory for a split supporting split/images and split layouts."""
+    split_dir = dataset_root / split
+    nested_images = split_dir / "images"
+    if has_image_files(nested_images):
+        return nested_images
+    if has_image_files(split_dir):
+        return split_dir
+    raise FileNotFoundError(
+        f"Could not find images for split '{split}'. Checked:\n"
+        f"- {nested_images}\n"
+        f"- {split_dir}"
+    )
+
+
 def convert_coco_to_yolo(
-    dataset_root: Path,
-    annotations_file: str,
-    output_labels_dir: str,
-    image_dir: str = "images",
+    annotations_path: Path,
+    images_dir: Path,
+    labels_dir: Path,
 ) -> None:
     """
     Convert COCO JSON annotations to YOLO .txt format.
     Only includes annotations for drone model classes.
 
     Args:
-        dataset_root: Root directory of the dataset split (train/ or val/)
-        annotations_file: Name of the JSON annotation file (e.g., 'train.json')
-        output_labels_dir: Output directory for label files (e.g., 'labels')
-        image_dir: Directory containing images (default: 'images')
+        annotations_path: Path to COCO JSON file (e.g., train.json)
+        images_dir: Directory containing split images (e.g., train/images)
+        labels_dir: Directory where YOLO labels are written (e.g., train/labels)
     """
-    json_path = dataset_root / annotations_file
-    labels_dir = dataset_root / output_labels_dir
-    images_dir = dataset_root / image_dir
+    json_path = annotations_path
 
     if not json_path.exists():
         print(f"Annotation file not found: {json_path}")
+        return
+
+    if not images_dir.exists():
+        print(f"Images directory not found: {images_dir}")
         return
 
     labels_dir.mkdir(parents=True, exist_ok=True)
@@ -120,16 +147,26 @@ def main():
     # Convert train set
     train_dir = dataset_root / "train"
     if train_dir.exists():
+        train_images_dir = resolve_images_dir(dataset_root, "train")
         print(f"\nConverting train set from {train_dir}...")
-        convert_coco_to_yolo(dataset_root, "train.json", "labels")
+        convert_coco_to_yolo(
+            annotations_path=dataset_root / "train.json",
+            images_dir=train_images_dir,
+            labels_dir=dataset_root / "train" / "labels",
+        )
     else:
         print(f"Train directory not found: {train_dir}")
 
     # Convert val set
     val_dir = dataset_root / "val"
     if val_dir.exists():
+        val_images_dir = resolve_images_dir(dataset_root, "val")
         print(f"\nConverting val set from {val_dir}...")
-        convert_coco_to_yolo(dataset_root, "val.json", "labels")
+        convert_coco_to_yolo(
+            annotations_path=dataset_root / "val.json",
+            images_dir=val_images_dir,
+            labels_dir=dataset_root / "val" / "labels",
+        )
     else:
         print(f"Val directory not found: {val_dir}")
 
