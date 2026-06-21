@@ -77,6 +77,7 @@ def convert_coco_to_yolo(
 
     # Drone model class IDs from COCO (map to class 0 "drone")
     DRONE_MODELS = {5, 12, 13, 15, 16, 17, 18, 19}  # DNDN-concept, Fixed-wing-concept, Shahed, DJI-Mavic-Pro, DJI-Matrice-600-Pro, DJI-S900, DJI-Spark, U842-Sport-Racing
+    category_name_by_id = {cat["id"]: cat["name"] for cat in coco_data.get("categories", [])}
 
     # Build mappings
     images_by_id: Dict[int, dict] = {img["id"]: img for img in coco_data["images"]}
@@ -100,6 +101,9 @@ def convert_coco_to_yolo(
 
     # Convert each image's annotations
     converted = 0
+    multi_label_images = 0
+    total_labels_written = 0
+    multi_label_samples = []
     for img_id, img_info in images_by_id.items():
         img_name = img_info["file_name"]
         img_width = img_info["width"]
@@ -111,6 +115,14 @@ def convert_coco_to_yolo(
 
         # Get annotations for this image
         anns = annotations_by_image.get(img_id, [])
+        if len(anns) > 1:
+            multi_label_images += 1
+            if len(multi_label_samples) < 10:
+                class_names = [
+                    category_name_by_id.get(ann["category_id"], str(ann["category_id"]))
+                    for ann in anns
+                ]
+                multi_label_samples.append((img_name, class_names))
 
         # Write YOLO format: class_id x_center y_center width height (normalized 0-1)
         # Only write file if there are drone annotations
@@ -135,10 +147,17 @@ def convert_coco_to_yolo(
 
                     # All drone models map to class 0
                     f.write(f"0 {x_center:.6f} {y_center:.6f} {norm_width:.6f} {norm_height:.6f}\n")
+                    total_labels_written += 1
 
             converted += 1
 
     print(f"Converted {converted} images with drone annotations to YOLO format in {labels_dir}")
+    print(f"Wrote {total_labels_written} labels total")
+    if multi_label_images:
+        print(f"Images with multiple drone-model annotations in JSON: {multi_label_images}")
+        print("Sample images with multiple selected classes:")
+        for file_name, class_names in multi_label_samples:
+            print(f"  - {file_name}: {', '.join(class_names)}")
 
 
 def main():
