@@ -68,6 +68,13 @@ def resolve_split_images_dir(dataset_root: Path, split: str) -> Path:
     )
 
 
+def resolve_labels_dir_for_images(images_dir: Path) -> Path:
+    """Resolve expected labels directory for the given images directory."""
+    if images_dir.name == "images":
+        return images_dir.parent / "labels"
+    return images_dir
+
+
 def build_runtime_data_config(dataset_root: Path) -> Path:
     """Build a YOLO data config using detected train/val image directory layout."""
     train_images_dir = resolve_split_images_dir(dataset_root, "train")
@@ -92,10 +99,11 @@ def build_runtime_data_config(dataset_root: Path) -> Path:
 
 def convert_coco_annotations(dataset_root: Path) -> None:
     """Convert COCO JSON annotations to YOLO format if not already done."""
-    train_labels = dataset_root / "train" / "labels"
-    val_labels = dataset_root / "val" / "labels"
-    resolve_split_images_dir(dataset_root, "train")
-    resolve_split_images_dir(dataset_root, "val")
+    train_images_dir = resolve_split_images_dir(dataset_root, "train")
+    val_images_dir = resolve_split_images_dir(dataset_root, "val")
+
+    train_labels = resolve_labels_dir_for_images(train_images_dir)
+    val_labels = resolve_labels_dir_for_images(val_images_dir)
 
     train_has_labels = train_labels.exists() and any(train_labels.glob("*.txt"))
     val_has_labels = val_labels.exists() and any(val_labels.glob("*.txt"))

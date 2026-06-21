@@ -33,6 +33,18 @@ def resolve_images_dir(dataset_root: Path, split: str) -> Path:
     )
 
 
+def resolve_labels_dir(images_dir: Path) -> Path:
+    """Resolve where labels must be written for a given images dir.
+
+    Ultralytics maps `/.../images/...jpg` -> `/.../labels/...txt`.
+    If images are in a flat split dir (no `images` segment), labels must be
+    written next to images as `split/*.txt`.
+    """
+    if images_dir.name == "images":
+        return images_dir.parent / "labels"
+    return images_dir
+
+
 def convert_coco_to_yolo(
     annotations_path: Path,
     images_dir: Path,
@@ -148,11 +160,12 @@ def main():
     train_dir = dataset_root / "train"
     if train_dir.exists():
         train_images_dir = resolve_images_dir(dataset_root, "train")
+        train_labels_dir = resolve_labels_dir(train_images_dir)
         print(f"\nConverting train set from {train_dir}...")
         convert_coco_to_yolo(
             annotations_path=dataset_root / "train.json",
             images_dir=train_images_dir,
-            labels_dir=dataset_root / "train" / "labels",
+            labels_dir=train_labels_dir,
         )
     else:
         print(f"Train directory not found: {train_dir}")
@@ -161,11 +174,12 @@ def main():
     val_dir = dataset_root / "val"
     if val_dir.exists():
         val_images_dir = resolve_images_dir(dataset_root, "val")
+        val_labels_dir = resolve_labels_dir(val_images_dir)
         print(f"\nConverting val set from {val_dir}...")
         convert_coco_to_yolo(
             annotations_path=dataset_root / "val.json",
             images_dir=val_images_dir,
-            labels_dir=dataset_root / "val" / "labels",
+            labels_dir=val_labels_dir,
         )
     else:
         print(f"Val directory not found: {val_dir}")
