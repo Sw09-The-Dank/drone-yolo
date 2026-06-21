@@ -6,6 +6,7 @@ from typing import Dict, List
 
 
 IMAGE_EXTENSIONS = ("*.jpg", "*.jpeg", "*.png", "*.bmp", "*.webp")
+DUPLICATE_IOU_THRESHOLD = 0.98
 
 
 def has_image_files(directory: Path) -> bool:
@@ -43,6 +44,58 @@ def resolve_labels_dir(images_dir: Path) -> Path:
     if images_dir.name == "images":
         return images_dir.parent / "labels"
     return images_dir
+
+
+def bbox_iou_xywh(box_a: List[float], box_b: List[float]) -> float:
+    """Compute IoU for COCO-format bboxes [x, y, w, h]."""
+    ax1, ay1, aw, ah = box_a
+    bx1, by1, bw, bh = box_b
+    ax2, ay2 = ax1 + aw, ay1 + ah
+    bx2, by2 = bx1 + bw, by1 + bh
+
+    inter_x1 = max(ax1, bx1)
+    inter_y1 = max(ay1, by1)
+    inter_x2 = min(ax2, bx2)
+    inter_y2 = min(ay2, by2)
+
+    inter_w = max(0.0, inter_x2 - inter_x1)
+    inter_h = max(0.0, inter_y2 - inter_y1)
+    inter_area = inter_w * inter_h
+    if inter_area == 0.0:
+        return 0.0
+
+    area_a = max(0.0, aw) * max(0.0, ah)
+    area_b = max(0.0, bw) * max(0.0, bh)
+    union = area_a + area_b - inter_area
+    if union <= 0.0:
+        return 0.0
+    return inter_area / union
+
+
+def dedupe_annotations(annotations: List[dict]) -> List[dict]:
+    """Drop near-identical duplicates per image, keeping larger bbox first."""
+    if len(annotations) <= 1:
+        return annotations
+
+    # Keep larger boxes first so tiny redundant boxes are removed first.
+    sorted_anns = sorted(
+        annotations,
+        key=lambda ann: ann["bbox"][2] * ann["bbox"][3],
+        reverse=True,
+    )
+
+    kept: List[dict] = []
+    for ann in sorted_anns:
+        duplicate = False
+        for existing in kept:
+            if ann["category_id"] != existing["category_id"]:
+                continue
+            if bbox_iou_xywh(ann["bbox"], existing["bbox"]) >= DUPLICATE_IOU_THRESHOLD:
+                duplicate = True
+                break
+        if not duplicate:
+            kept.append(ann)
+    return kept
 
 
 def convert_coco_to_yolo(
@@ -102,6 +155,8 @@ def convert_coco_to_yolo(
     # Convert each image's annotations
     converted = 0
     multi_label_images = 0
+    deduped_images = 0
+    removed_duplicate_labels = 0
     total_labels_written = 0
     multi_label_samples = []
     for img_id, img_info in images_by_id.items():
@@ -115,6 +170,11 @@ def convert_coco_to_yolo(
 
         # Get annotations for this image
         anns = annotations_by_image.get(img_id, [])
+        anns_before = len(anns)
+        anns = dedupe_annotations(anns)
+        if len(anns) < anns_before:
+            deduped_images += 1
+            removed_duplicate_labels += anns_before - len(anns)
         if len(anns) > 1:
             multi_label_images += 1
             if len(multi_label_samples) < 10:
@@ -153,6 +213,11 @@ def convert_coco_to_yolo(
 
     print(f"Converted {converted} images with drone annotations to YOLO format in {labels_dir}")
     print(f"Wrote {total_labels_written} labels total")
+    if deduped_images:
+        print(
+            f"Removed {removed_duplicate_labels} near-duplicate labels "
+            f"across {deduped_images} images (IoU >= {DUPLICATE_IOU_THRESHOLD})"
+        )
     if multi_label_images:
         print(f"Images with multiple drone-model annotations in JSON: {multi_label_images}")
         print("Sample images with multiple selected classes:")
