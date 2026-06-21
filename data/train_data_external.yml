@@ -1,5 +1,7 @@
 # External dataset config for YOLO training (drone models only)
-path: /Documents/drone-mask-dino/dataset/swapaug7
+# Inside Docker: /app/data/swapaug7
+# Outside Docker: /Documents/drone-mask-dino/dataset/swapaug7 (or ~/Documents/drone-mask-dino/dataset/swapaug7)
+path: /app/data/swapaug7
 train: train/images
 val: val/images
 

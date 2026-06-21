@@ -33,6 +33,10 @@ services:
       - ./inference.py:/app/inference.py
       - ./create_data.py:/app/create_data.py
       - ./clear_data.py:/app/clear_data.py
+      - ./convert_coco_to_yolo.py:/app/convert_coco_to_yolo.py
+
+      # External dataset mount
+      - ~/Documents/drone-mask-dino/dataset/swapaug7:/app/data/swapaug7
 
     environment:
       - CUDA_VISIBLE_DEVICES=0  # Uncomment if using GPU

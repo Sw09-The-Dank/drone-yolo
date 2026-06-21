@@ -79,11 +79,16 @@ def main():
 
     print(f"Using data config: {data_path}")
 
-    # Resolve dataset root from YAML
-    dataset_root = Path("/Documents/drone-mask-dino/dataset/swapaug7")
-    if not dataset_root.exists():
-        # Fallback to user's Documents
-        dataset_root = Path.home() / "Documents" / "drone-mask-dino" / "dataset" / "swapaug7"
+    # Resolve dataset root (Docker container path takes precedence)
+    docker_dataset = Path("/app/data/swapaug7")
+    if docker_dataset.exists():
+        dataset_root = docker_dataset
+        print(f"Running in Docker container, using: {dataset_root}")
+    else:
+        # Fallback for local development
+        dataset_root = Path("/Documents/drone-mask-dino/dataset/swapaug7")
+        if not dataset_root.exists():
+            dataset_root = Path.home() / "Documents" / "drone-mask-dino" / "dataset" / "swapaug7"
 
     if not dataset_root.exists():
         raise FileNotFoundError(f"Dataset not found at {dataset_root}")
